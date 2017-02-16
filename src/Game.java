@@ -7,12 +7,34 @@ import static java.lang.Math.abs;
 class Game {
 
     static void mutate(double[] chromosome, Random r) {
-        double mutationValue = chromosome[292] * r.nextGaussian();
-        chromosome[r.nextInt(296)] += mutationValue;
+        double mutationValue = 0.0;
+        int modifiedValue = r.nextInt(296);
+        if (modifiedValue < 290 || modifiedValue == 292) {
+            mutationValue = chromosome[292] * r.nextGaussian();
+        } else if (modifiedValue == 291) {
+            chromosome[modifiedValue] = r.nextDouble();
+            return;
+        } else if (modifiedValue == 293) {
+            do {
+                chromosome[modifiedValue] = r.nextInt(20);
+            } while (chromosome[modifiedValue] < 0);
+            return;
+        } else if (modifiedValue == 294) {
+            mutationValue = r.nextDouble();
+            while (mutationValue < .5) {
+                mutationValue = r.nextDouble();
+            }
+        } else if (modifiedValue == 295) {
+            do {
+                chromosome[modifiedValue] = r.nextInt(20);
+            } while (chromosome[modifiedValue] < 0);
+            return;
+        }
+        chromosome[modifiedValue] += mutationValue;
     }
 
     static boolean isDead(double[] chromosome) {
-        for (int i = 0; i < 291; i++) {
+        for (int i = 0; i < 296; i++) {
             if (chromosome[i] != 0.0) {
                 return false;
             }
@@ -28,24 +50,32 @@ class Game {
         System.out.print("]\n");
     }
 
-    static int findBestDad(double[] mom, double[][] dads) {
-        double[] alikenesses = new double[6];
-        for (int i = 0; i < 6; i++) {
+    static int findBestDad(double[] mom, double[][] dads, int maxDads) {
+        double[] alikenesses = new double[maxDads];
+        for (int i = 0; i < maxDads; i++) {
             double alikeness = 0.0;
-            for (int j = 0; j < 291; j++) {
+            for (int j = 0; j < 296; j++) {
                 alikeness += abs(abs(mom[j]) - abs(dads[i][j]));
             }
             alikenesses[i] = alikeness;
         }
         int bestDad = 0;
         double bestAlikeness = 20000;
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < maxDads; i++) {
             if (alikenesses[i] < bestAlikeness) {
                 bestDad = i;
                 bestAlikeness = alikenesses[i];
             }
         }
         return bestDad;
+    }
+
+    static double[] getOnlyWeights(double[] chromosome) {
+        double[] returnValue = new double[291];
+        for (int i = 0; i < 291; i++) {
+            returnValue[i] = chromosome[i];
+        }
+        return returnValue;
     }
 
     static double[] evolveWeights() {
@@ -82,13 +112,24 @@ class Game {
             }
 
             //NATURAL SELECTION
-            double[][] chromosomesForBattle = new double[abs((int) population.row(0)[293]) * 2][291];
+
             List<Integer> beenThere = new LinkedList<Integer>();
+            double[] metaChromosome;
             int chromosome;
-            for (int i = 0; i < abs((int) population.row(0)[293]); i++) {
+            while (true) {
+                chromosome = r.nextInt(100);
+                if (!beenThere.contains(chromosome)) {
+                    beenThere.add(chromosome);
+                    break;
+                }
+            }
+            metaChromosome = population.row(chromosome);
+            double[][] chromosomesForBattle = new double[abs((int) metaChromosome[293]) * 2][291];
+            for (int i = 0; i < abs((int) metaChromosome[293]); i++) {
                 while (true) {
                     chromosome = r.nextInt(100);
                     if (!beenThere.contains(chromosome)) {
+                        beenThere.add(chromosome);
                         break;
                     }
 
@@ -97,6 +138,7 @@ class Game {
                 while (true) {
                     chromosome = r.nextInt(100);
                     if (!beenThere.contains(chromosome)) {
+                        beenThere.add(chromosome);
                         break;
                     }
 
@@ -110,19 +152,19 @@ class Game {
 //			}
             //Perform battles and determine winners and kill those who must die
             int winOrLose = 0;
-            for (int i = 0; i < abs((int) population.row(0)[293]); i++) {
+            for (int i = 0; i < abs((int) metaChromosome[293]); i++) {
                 try {
 //					System.out.print("Battling\nChromosome1: ");
 //					printChromosome(chromosomesForBattle[2*i]);
 //					System.out.print("Chromosome2: ");
 //					printChromosome(chromosomesForBattle[2 * i + 1]);
-                    winOrLose = Controller.doBattleNoGui(new NeuralAgent(chromosomesForBattle[2 * i]), new NeuralAgent(chromosomesForBattle[2 * i + 1]));
+                    winOrLose = Controller.doBattleNoGui(new NeuralAgent(getOnlyWeights(chromosomesForBattle[2 * i])), new NeuralAgent(getOnlyWeights(chromosomesForBattle[2 * i + 1])));
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
 
                 //Kill the loser
-                if (r.nextDouble() < loserDies) {
+                if (r.nextDouble() < abs(metaChromosome[294])) {
                     if (winOrLose == 1) {
                         chromosome1Wins++;
                         System.out.print("Chromosome1 wins. Killing chromosome2\n");
@@ -177,9 +219,9 @@ class Game {
                 do {
                     mom = population.row(r.nextInt(100));
                 } while (isDead(mom));
-                double[][] dads = new double[6][296];
+                double[][] dads = new double[abs((int) metaChromosome[295])][296];
                 int numDads = 0;
-                while (numDads < 6) {
+                while (numDads < (int) metaChromosome[295]) {
                     double[] dad;
                     do {
                         dad = population.row(r.nextInt(100));
@@ -187,19 +229,23 @@ class Game {
                     dads[numDads] = dad;
                     numDads++;
                 }
-                int bestDad = findBestDad(mom, dads);
+                int bestDad = findBestDad(mom, dads, abs((int) metaChromosome[295]));
 
                 double[] child = new double[296];
-                for (int j = 0; j < 291; j++) {
+                for (int j = 0; j < 296; j++) {
                     if (r.nextDouble() < reproductiveDecisions) {
-                        child[j] = dads[bestDad][j];
+                        try {
+                            child[j] = dads[bestDad][j];
+                        } catch (ArrayIndexOutOfBoundsException ex) {
+                            ex.printStackTrace();
+                        }
                     } else {
                         child[j] = mom[j];
                     }
                 }
 
                 double[] copy = population.row(i);
-                for (int j = 0; j < 291; j++) {
+                for (int j = 0; j < 296; j++) {
                     copy[j] = child[j];
                 }
             }
@@ -217,7 +263,7 @@ class Game {
         for (int i = 0; i < 100; i++) {
             try {
                 startTime = System.nanoTime();
-                didAnyoneWin = Controller.doBattleNoGui(new ReflexAgent(), new NeuralAgent(population.row(i)));
+                didAnyoneWin = Controller.doBattleNoGui(new ReflexAgent(), new NeuralAgent(getOnlyWeights(population.row(i))));
                 endTime = System.nanoTime();
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -234,10 +280,10 @@ class Game {
         }
         System.out.print("ChromomeWinners: " + numWinners + "\n");
         if (numWinners > 0) {
-            return currentWinner;
+            return getOnlyWeights(currentWinner);
         }
         // Return an arbitrary member from the population
-        return population.row(0);
+        return getOnlyWeights(population.row(0));
     }
 
 
