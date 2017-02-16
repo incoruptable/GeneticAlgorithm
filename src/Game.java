@@ -7,8 +7,8 @@ import static java.lang.Math.abs;
 class Game {
 
     static void mutate(double[] chromosome, Random r) {
-        double mutationValue = .5 * r.nextGaussian();
-        chromosome[r.nextInt(291)] += mutationValue;
+        double mutationValue = chromosome[292] * r.nextGaussian();
+        chromosome[r.nextInt(296)] += mutationValue;
     }
 
     static boolean isDead(double[] chromosome) {
@@ -51,18 +51,22 @@ class Game {
     static double[] evolveWeights() {
         // Create a random initial population
         Random r = new Random();
-        Matrix population = new Matrix(100, 291);
+        Matrix population = new Matrix(100, 296);
         for (int i = 0; i < 100; i++) {
             double[] chromosome = population.row(i);
-            for (int j = 0; j < chromosome.length; j++)
+            for (int j = 0; j < 291; j++)
                 chromosome[j] = 0.03 * r.nextGaussian();
+            chromosome[291] = .2;
+            chromosome[292] = 5;
+            chromosome[293] = 3;
+            chromosome[294] = .55;
+            chromosome[295] = 6;
         }
 
         double mutationAverage = .2;
         double reproductiveDecisions = .5;
         double loserDies = .51;
         int numEvolutions = 1000;
-        int numTournaments = 8;
         int chromosome1Wins = 0;
         int chromosome2Wins = 0;
         int noOneWins = 0;
@@ -72,16 +76,16 @@ class Game {
             System.out.print("Evolution number = " + evolution + "\n");
 
             for (int j = 0; j < 100; j++) {
-                if (r.nextDouble() < mutationAverage) {
+                if (r.nextDouble() < population.row(j)[291]) {
                     mutate(population.row(j), r);
                 }
             }
 
             //NATURAL SELECTION
-            double[][] chromosomesForBattle = new double[numTournaments * 2][291];
+            double[][] chromosomesForBattle = new double[abs((int) population.row(0)[293]) * 2][291];
             List<Integer> beenThere = new LinkedList<Integer>();
             int chromosome;
-            for (int i = 0; i < numTournaments; i++) {
+            for (int i = 0; i < abs((int) population.row(0)[293]); i++) {
                 while (true) {
                     chromosome = r.nextInt(100);
                     if (!beenThere.contains(chromosome)) {
@@ -106,7 +110,7 @@ class Game {
 //			}
             //Perform battles and determine winners and kill those who must die
             int winOrLose = 0;
-            for (int i = 0; i < numTournaments; i++) {
+            for (int i = 0; i < abs((int) population.row(0)[293]); i++) {
                 try {
 //					System.out.print("Battling\nChromosome1: ");
 //					printChromosome(chromosomesForBattle[2*i]);
@@ -122,18 +126,18 @@ class Game {
                     if (winOrLose == 1) {
                         chromosome1Wins++;
                         System.out.print("Chromosome1 wins. Killing chromosome2\n");
-                        for (int j = 0; j < 291; j++)
+                        for (int j = 0; j < 296; j++)
                             chromosomesForBattle[2 * i + 1][j] = 0.0;
                     } else if (winOrLose == -1) {
                         chromosome2Wins++;
                         System.out.print("Chromosome2 wins. Killing chromosome1.\n");
-                        for (int j = 0; j < 291; j++) {
+                        for (int j = 0; j < 296; j++) {
                             chromosomesForBattle[2 * i][j] = 0.0;
                         }
                     } else {
                         System.out.print("No one wins! Kill them all\n");
                         noOneWins++;
-                        for (int j = 0; j < 291; j++) {
+                        for (int j = 0; j < 296; j++) {
                             chromosomesForBattle[2 * i][j] = 0.0;
                         }
                     }
@@ -143,19 +147,19 @@ class Game {
                     if (winOrLose == 1) {
                         chromosome1Wins++;
                         System.out.print("Chromosome1 wins. Killing chromosome1.\n");
-                        for (int j = 0; j < 291; j++) {
+                        for (int j = 0; j < 296; j++) {
                             chromosomesForBattle[2 * i][j] = 0.0;
                         }
                     } else if (winOrLose == -1) {
                         chromosome2Wins++;
                         System.out.print("Chromosome2 wins. Killing Chromosome 2.\n");
-                        for (int j = 0; j < 291; j++) {
+                        for (int j = 0; j < 296; j++) {
                             chromosomesForBattle[2 * i + 1][j] = 0.0;
                         }
                     } else {
                         noOneWins++;
                         System.out.print("No one won. Kill them all.\n");
-                        for (int j = 0; j < 291; j++) {
+                        for (int j = 0; j < 296; j++) {
                             chromosomesForBattle[2 * i + 1][j] = 0.0;
                         }
                     }
@@ -173,7 +177,7 @@ class Game {
                 do {
                     mom = population.row(r.nextInt(100));
                 } while (isDead(mom));
-                double[][] dads = new double[6][291];
+                double[][] dads = new double[6][296];
                 int numDads = 0;
                 while (numDads < 6) {
                     double[] dad;
@@ -185,7 +189,7 @@ class Game {
                 }
                 int bestDad = findBestDad(mom, dads);
 
-                double[] child = new double[291];
+                double[] child = new double[296];
                 for (int j = 0; j < 291; j++) {
                     if (r.nextDouble() < reproductiveDecisions) {
                         child[j] = dads[bestDad][j];
@@ -205,7 +209,7 @@ class Game {
         System.out.print("Chromosome1 Won" + chromosome1Wins + "\nChromosome2 Won" + chromosome2Wins + "\nNo one won" + noOneWins + "\n");
 
         int didAnyoneWin = 0;
-        double[] currentWinner = new double[291];
+        double[] currentWinner = new double[296];
         long shortestFightTime = 1000000000;
         long startTime = 0;
         long endTime = 0;
